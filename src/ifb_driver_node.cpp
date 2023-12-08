@@ -65,7 +65,7 @@ private:
         //"/cmd_vel", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
     sub_cmd_vel_ = this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
-        "/cmd_vel", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
+        "/control/command/control_cmd", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
     read_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(10), std::bind(&IfbDriver::read_from_IFB, this));
@@ -92,7 +92,7 @@ private:
   void cb_on_cmd_vel(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg)
   {
     // Callback for new vehicle command
-    RCLCPP_INFO(this->get_logger(), "Received /ackermann_cmd.");
+    RCLCPP_INFO(this->get_logger(), "Received topic /control/command/control_cmd");
 
     int acc_cmd = static_cast<int>(msg->longitudinal.acceleration * ACC_CMD_FACTOR);
 
@@ -249,26 +249,14 @@ private:
 
 int main(int argc, char** argv)
 {
-  (void) argc;
-  (void) argv;
-
-  printf("hello world 000 ifb_driver_package package\n");
+  
+  printf("ifb_driver_package package Begining\n");
   
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<IfbDriver>());
   rclcpp::shutdown();
 
-  printf("hello world 111ifb_driver_package package\n");
+  printf("ifb_driver_package package End\n");
 
   return 0;
 }
-
-
-// int main(int argc, char ** argv)
-// {
-//   (void) argc;
-//   (void) argv;
-
-//   printf("hello world 111ifb_driver_package package\n");
-//   return 0;
-// }
