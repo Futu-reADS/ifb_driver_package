@@ -24,6 +24,7 @@
 
 #include <autoware_auto_vehicle_msgs/msg/vehicle_control_command.hpp>
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
+#include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
 
 // Define constants
 constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
@@ -58,7 +59,8 @@ private:
 
     // pub_act_vel_ = this->create_publisher<geometry_msgs::msg::Twist>("/act_vel", 1);
     // pub_act_vel_ = this->create_publisher<autoware_auto_control_msgs::msg::AckermannControlCommand>("/act_vel", 1);
-    pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>("/your/vehicle_control_command/topic", 1);
+    //pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>("/your/vehicle_control_command/topic", 1);
+    pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", 1);
 
     pub_msg_from_ultrasonic_ = this->create_publisher<std_msgs::msg::String>("/msg_from_ultrasonic", 1);
     //sub_cmd_vel_ = this->create_subscription<geometry_msgs::msg::Twist>(
@@ -68,7 +70,7 @@ private:
         "/control/command/control_cmd", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
     read_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(10), std::bind(&IfbDriver::read_from_IFB, this));
+        std::chrono::milliseconds(20), std::bind(&IfbDriver::read_from_IFB, this));
 
     // Connect to the IFB board
     connect();
@@ -170,8 +172,8 @@ private:
         // act_vel_.longitudinal.acceleration = speed / ACC_CMD_FACTOR;
         // act_vel_.lateral.steering_tire_angle = steer / STEER_CMD_FACTOR;
 
-        act_vel_.long_accel_mps2 = speed / ACC_CMD_FACTOR;
-        act_vel_.front_wheel_angle_rad = steer / STEER_CMD_FACTOR;
+        act_vel_.longitudinal_velocity = speed / ACC_CMD_FACTOR;
+        act_vel_.lateral_velocity = steer / STEER_CMD_FACTOR;
       }
       catch (const std::exception& e)
       {
@@ -238,8 +240,11 @@ private:
   // autoware_auto_control_msgs::msg::AckermannControlCommand act_vel_;
   // rclcpp::Publisher<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr pub_act_vel_;
 
-  autoware_auto_vehicle_msgs::msg::VehicleControlCommand act_vel_;
-  rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>::SharedPtr pub_act_vel_;
+  //autoware_auto_vehicle_msgs::msg::VehicleControlCommand act_vel_;
+  //rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>::SharedPtr pub_act_vel_;
+
+  autoware_auto_vehicle_msgs::msg::VelocityReport act_vel_;
+  rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>::SharedPtr pub_act_vel_;
 
   // rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_vel_;
   rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr sub_cmd_vel_;
