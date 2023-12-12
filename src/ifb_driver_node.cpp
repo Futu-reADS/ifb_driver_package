@@ -25,6 +25,7 @@
 #include <autoware_auto_vehicle_msgs/msg/vehicle_control_command.hpp>
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
 #include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
+#include <autoware_auto_vehicle_msgs/msg/steering_report.hpp>
 
 // Define constants
 constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
@@ -60,12 +61,16 @@ private:
     // pub_act_vel_ = this->create_publisher<geometry_msgs::msg::Twist>("/act_vel", 1);
     // pub_act_vel_ = this->create_publisher<autoware_auto_control_msgs::msg::AckermannControlCommand>("/act_vel", 1);
     //pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>("/your/vehicle_control_command/topic", 1);
+
+    //from vehicle interface to Autoware
     pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", 1);
+    pub_act_steer_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", 1);
 
     pub_msg_from_ultrasonic_ = this->create_publisher<std_msgs::msg::String>("/msg_from_ultrasonic", 1);
     //sub_cmd_vel_ = this->create_subscription<geometry_msgs::msg::Twist>(
         //"/cmd_vel", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
+    //from autoware
     sub_cmd_vel_ = this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
         "/control/command/control_cmd", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
@@ -173,7 +178,7 @@ private:
         // act_vel_.lateral.steering_tire_angle = steer / STEER_CMD_FACTOR;
 
         act_vel_.longitudinal_velocity = speed / ACC_CMD_FACTOR;
-        act_vel_.lateral_velocity = steer / STEER_CMD_FACTOR;
+        act_steer_.steering_tire_angle = steer / STEER_CMD_FACTOR;
       }
       catch (const std::exception& e)
       {
@@ -181,6 +186,7 @@ private:
       }
 
       pub_act_vel_->publish(act_vel_);
+      pub_act_steer_->publish(act_steer_);
       update_ifb_last();
     }
     else if (in_str_split[0] == "info")
@@ -245,6 +251,9 @@ private:
 
   autoware_auto_vehicle_msgs::msg::VelocityReport act_vel_;
   rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>::SharedPtr pub_act_vel_;
+
+  autoware_auto_vehicle_msgs::msg::SteeringReport act_steer_;
+  rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>::SharedPtr pub_act_steer_;
 
   // rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_vel_;
   rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr sub_cmd_vel_;
