@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="ifb_driver_package" exec="ifb_driver_node"/>
+</launch>
