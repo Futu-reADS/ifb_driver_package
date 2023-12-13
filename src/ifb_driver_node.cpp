@@ -31,9 +31,9 @@
 // Define constants
 // constexpr char PORT_IFB[] =
 // "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
-constexpr char PORT_IFB[] =
-  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0669FF555557838667143421-if02";  // okinawa
-                                                                                          // board
+// constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0669FF555557838667143421-if02";  // okinawa
+
+constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
 constexpr int BAUD_RATE = 115200;
 constexpr int IFBSTAT_TIMEOUT_NSEC = 1e9;  // nsecs
 constexpr double IFB_TIMEOUT_SEC = 0.5;
@@ -97,7 +97,7 @@ private:
   void cb_on_cmd_vel(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg)
   {
     // Callback for new vehicle command
-    // RCLCPP_INFO(this->get_logger(), "Received topic /control/command/control_cmd");
+    RCLCPP_INFO(this->get_logger(), "Received topic /control/command/control_cmd");
 
     int acc_cmd = static_cast<int>(
       msg->longitudinal.acceleration *
@@ -193,7 +193,8 @@ private:
     try {
       if (ser_->available()) {
         ser_in_ = ser_->readline();
-        // std::cout << "IFB Received data: " << ser_in_ << std::endl;
+        ser_->flushInput();
+        std::cout << "IFB Received data: " << ser_in_ << std::endl;
         return true;
       }
 
