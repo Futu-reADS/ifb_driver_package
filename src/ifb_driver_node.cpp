@@ -34,6 +34,9 @@
 // constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0669FF555557838667143421-if02";  // okinawa
 
 constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
+// constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066AFF515049657187144732-if02";
+
+
 constexpr int BAUD_RATE = 115200;
 constexpr int IFBSTAT_TIMEOUT_NSEC = 1e9;  // nsecs
 constexpr double IFB_TIMEOUT_SEC = 0.5;
@@ -75,7 +78,7 @@ private:
 
     read_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(TIMER_MILLI), std::bind(&IfbDriver::read_from_IFB, this));
-
+    this->act_vel_.header.frame_id = "base_link";
     // Connect to the IFB board
     connect();
   }
