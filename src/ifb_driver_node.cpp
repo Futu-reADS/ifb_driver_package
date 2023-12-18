@@ -17,6 +17,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
+#include <autoware_auto_vehicle_msgs/msg/steering_report.hpp>
 #include <autoware_auto_vehicle_msgs/msg/vehicle_control_command.hpp>
 #include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -31,32 +32,43 @@
 // Define constants
 // constexpr char PORT_IFB[] =
 // "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
-// constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0669FF555557838667143421-if02";  // okinawa
+constexpr char PORT_IFB[] =
+  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
 
-constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
-// constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066AFF515049657187144732-if02";
-
-
-constexpr int BAUD_RATE = 115200;
-constexpr int IFBSTAT_TIMEOUT_NSEC = 1e9;  // nsecs
-constexpr double IFB_TIMEOUT_SEC = 0.5;
-constexpr double SERIAL_TIMEOUT = 1.0;
-constexpr double WRITE_TIMEOUT = 1.0;
-constexpr int ANGLE_STEER_DEG_MAX = 30;
-constexpr double WHEEL_BASE = 1.0;         // [m]
-constexpr double ACC_CMD_FACTOR = 1000.0;  // m to mm
-constexpr int ACC_CMD_MIN = 0;
-constexpr int ACC_CMD_MAX = 3000;
-constexpr int STEER_CMD_MIN = -500;
-constexpr int STEER_CMD_MAX = 500;
-constexpr double STEER_CMD_FACTOR = 1000.0;
-constexpr int TIMER_MILLI = 20;  // must match ifb mbed code timer
+int BAUD_RATE;
+double IFBSTAT_TIMEOUT_NSEC;  // nsecs
+double IFB_TIMEOUT_SEC;
+double SERIAL_TIMEOUT;
+double WRITE_TIMEOUT;
+int ANGLE_STEER_DEG_MAX;
+double WHEEL_BASE;      // [m]
+double ACC_CMD_FACTOR;  // 1m/s -> cmd=1000rpm@motor
+int ACC_CMD_MIN;
+int ACC_CMD_MAX;
+int STEER_CMD_MIN;
+int STEER_CMD_MAX;
+double STEER_CMD_FACTOR;
+int TIMER_MILLI;
 
 class IfbDriver : public rclcpp::Node
 {
 public:
   IfbDriver() : Node("ifb_driver"), port_ifb_(PORT_IFB), baudrate_(BAUD_RATE), ser_ifb_error_(false)
   {
+    BAUD_RATE = declare_parameter<int>("BAUD_RATE", 115200);
+    IFBSTAT_TIMEOUT_NSEC = declare_parameter<double>("IFBSTAT_TIMEOUT_NSEC", 1e9);
+    IFB_TIMEOUT_SEC = declare_parameter<double>("IFB_TIMEOUT_SEC", 0.5);
+    SERIAL_TIMEOUT = declare_parameter<double>("SERIAL_TIMEOUT", 1.0);
+    WRITE_TIMEOUT = declare_parameter<double>("WRITE_TIMEOUT", 1.0);
+    ANGLE_STEER_DEG_MAX = declare_parameter<int>("ANGLE_STEER_DEG_MAX", 30);
+    WHEEL_BASE = declare_parameter<double>("WHEEL_BASE", 1.0);
+    ACC_CMD_FACTOR = declare_parameter<double>("ACC_CMD_FACTOR", 1000.0);
+    ACC_CMD_MIN = declare_parameter<int>("ACC_CMD_MIN", 0);
+    ACC_CMD_MAX = declare_parameter<int>("ACC_CMD_MAX", 3000);
+    STEER_CMD_MIN = declare_parameter<int>("STEER_CMD_MIN", -500);
+    STEER_CMD_MAX = declare_parameter<int>("STEER_CMD_MAX", 500);
+    STEER_CMD_FACTOR = declare_parameter<double>("STEER_CMD_FACTOR", 1000.0);
+    TIMER_MILLI = declare_parameter<int>("TIMER_MILLI", 20);
     init();
   }
 
@@ -65,12 +77,27 @@ private:
   {
     // Initialize publishers and subscribers
     pub_msg_from_ifb_ = this->create_publisher<std_msgs::msg::String>("/msg_from_ifb", 1);
+
+    // pub_act_vel_ = this->create_publisher<geometry_msgs::msg::Twist>("/act_vel", 1);
+    // pub_act_vel_ =
+    // this->create_publisher<autoware_auto_control_msgs::msg::AckermannControlCommand>("/act_vel",
+    // 1);
+    // pub_act_vel_ =
+    // this->create_publisher<autoware_auto_vehicle_msgs::msg::VehicleControlCommand>("/your/vehicle_control_command/topic",
+    // 1);
+
+    // from vehicle interface to Autoware
     pub_act_vel_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>(
       "/vehicle/status/velocity_status", 1);
+    pub_act_steer_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>(
+      "/vehicle/status/steering_status", 1);
 
-    // pub_msg_from_ultrasonic_ =
-    // this->create_publisher<std_msgs::msg::String>("/msg_from_ultrasonic", 1);
+    pub_msg_from_ultrasonic_ =
+      this->create_publisher<std_msgs::msg::String>("/msg_from_ultrasonic", 1);
+    // sub_cmd_vel_ = this->create_subscription<geometry_msgs::msg::Twist>(
+    //"/cmd_vel", 1, std::bind(&IfbDriver::cb_on_cmd_vel, this, std::placeholders::_1));
 
+    // from autoware
     sub_cmd_vel_ =
       this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
         "/control/command/control_cmd", 1,
@@ -100,20 +127,20 @@ private:
   void cb_on_cmd_vel(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg)
   {
     // Callback for new vehicle command
-    RCLCPP_INFO(this->get_logger(), "Received topic /control/command/control_cmd");
 
-    int acc_cmd = static_cast<int>(
-      msg->longitudinal.acceleration *
-      ACC_CMD_FACTOR);  // should this be `longitudinal.speed` instead?
+    int acc_cmd = static_cast<int>(msg->longitudinal.speed * ACC_CMD_FACTOR);
 
     // Check limits
     acc_cmd = std::min(std::max(acc_cmd, ACC_CMD_MIN), ACC_CMD_MAX);
+    RCLCPP_INFO(this->get_logger(), "Received velocity: %d", acc_cmd);
 
     write_str("A" + std::to_string(acc_cmd) + "\r\n");
 
     // Steering
     int str_cmd = static_cast<int>(msg->lateral.steering_tire_angle * STEER_CMD_FACTOR);
     str_cmd = std::min(std::max(str_cmd, STEER_CMD_MIN), STEER_CMD_MAX);
+    RCLCPP_INFO(this->get_logger(), "Received steering: %d", str_cmd);
+
     write_str("S" + std::to_string(str_cmd) + "\r\n");
     return;
   }
@@ -166,13 +193,13 @@ private:
         double steer = std::stod(in_str_split[2]);
 
         act_vel_.longitudinal_velocity = speed / ACC_CMD_FACTOR;
-        act_vel_.lateral_velocity = steer / STEER_CMD_FACTOR;
-
+        act_steer_.steering_tire_angle = steer / STEER_CMD_FACTOR;
       } catch (const std::exception & e) {
         return;
       }
 
       pub_act_vel_->publish(act_vel_);
+      pub_act_steer_->publish(act_steer_);
       update_ifb_last();
     } else if (in_str_split[0] == "info") {
       // Future: update ifb board state
@@ -197,7 +224,7 @@ private:
       if (ser_->available()) {
         ser_in_ = ser_->readline();
         ser_->flushInput();
-        std::cout << "IFB Received data: " << ser_in_ << std::endl;
+        RCLCPP_INFO(this->get_logger(), "IFB Received data: %s", ser_in_.c_str());
         return true;
       }
 
@@ -218,6 +245,11 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_msg_from_ultrasonic_;
   autoware_auto_vehicle_msgs::msg::VelocityReport act_vel_;
   rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>::SharedPtr pub_act_vel_;
+
+  autoware_auto_vehicle_msgs::msg::SteeringReport act_steer_;
+  rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>::SharedPtr pub_act_steer_;
+
+  // rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_vel_;
   rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr
     sub_cmd_vel_;
   rclcpp::TimerBase::SharedPtr read_timer_;

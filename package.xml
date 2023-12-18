@@ -8,6 +8,7 @@
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ifb_driver_node</exec_depend>
 
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
