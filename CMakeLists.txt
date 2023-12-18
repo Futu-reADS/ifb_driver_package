@@ -62,6 +62,10 @@ target_link_libraries(ifb_driver_node ${PROJECT_NAME})
 
 install(TARGETS ifb_driver_node
   DESTINATION lib/${PROJECT_NAME})
+  
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME})  
 
 ament_target_dependencies(ifb_driver_node rclcpp std_msgs geometry_msgs Boost autoware_auto_vehicle_msgs autoware_auto_control_msgs)  
 

@@ -29,19 +29,20 @@
 
 // Define constants
 constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
-constexpr int BAUD_RATE = 115200;
-constexpr int IFBSTAT_TIMEOUT_NSEC = 1e9;  // nsecs
-constexpr double IFB_TIMEOUT_SEC = 0.5;
-constexpr double SERIAL_TIMEOUT = 1.0;
-constexpr double WRITE_TIMEOUT = 1.0;
-constexpr int ANGLE_STEER_DEG_MAX = 30;
-constexpr double WHEEL_BASE = 1.0;  // [m]
-constexpr double ACC_CMD_FACTOR = 1000.0; //1m/s -> cmd=1000rpm@motor
-constexpr int ACC_CMD_MIN = 0;
-constexpr int ACC_CMD_MAX = 3000;
-constexpr int STEER_CMD_MIN = -500;
-constexpr int STEER_CMD_MAX = 500;
-constexpr double STEER_CMD_FACTOR = 1000.0;
+
+int BAUD_RATE;
+double IFBSTAT_TIMEOUT_NSEC;  // nsecs
+double IFB_TIMEOUT_SEC;
+double SERIAL_TIMEOUT;
+double WRITE_TIMEOUT;
+int ANGLE_STEER_DEG_MAX;
+double WHEEL_BASE;  // [m]
+double ACC_CMD_FACTOR; //1m/s -> cmd=1000rpm@motor
+int ACC_CMD_MIN;
+int ACC_CMD_MAX;
+int STEER_CMD_MIN;
+int STEER_CMD_MAX;
+double STEER_CMD_FACTOR;
 
 class IfbDriver : public rclcpp::Node
 {
@@ -49,6 +50,20 @@ public:
   IfbDriver()
     : Node("ifb_driver"), port_ifb_(PORT_IFB), baudrate_(BAUD_RATE), ser_ifb_error_(false)
   {
+    BAUD_RATE             = declare_parameter<int>("BAUD_RATE", 115200);
+    IFBSTAT_TIMEOUT_NSEC  = declare_parameter<double>("IFBSTAT_TIMEOUT_NSEC", 1e9);
+    IFB_TIMEOUT_SEC       = declare_parameter<double>("IFB_TIMEOUT_SEC", 0.5);
+    SERIAL_TIMEOUT        = declare_parameter<double>("SERIAL_TIMEOUT", 1.0);
+    WRITE_TIMEOUT         = declare_parameter<double>("WRITE_TIMEOUT", 1.0);
+    ANGLE_STEER_DEG_MAX   = declare_parameter<int>("ANGLE_STEER_DEG_MAX", 30);
+    WHEEL_BASE            = declare_parameter<double>("WHEEL_BASE", 1.0);
+    ACC_CMD_FACTOR        = declare_parameter<double>("ACC_CMD_FACTOR", 1000.0);
+    ACC_CMD_MIN           = declare_parameter<int>("ACC_CMD_MIN", 0);
+    ACC_CMD_MAX           = declare_parameter<int>("ACC_CMD_MAX", 3000);
+    STEER_CMD_MIN         = declare_parameter<int>("STEER_CMD_MIN", -500);
+    STEER_CMD_MAX         = declare_parameter<int>("STEER_CMD_MAX", 500);
+    STEER_CMD_FACTOR      = declare_parameter<double>("STEER_CMD_FACTOR", 1000.0);
+
     init();
   }
 
@@ -219,7 +234,8 @@ private:
       if (ser_->available())
       {     
         ser_in_ = ser_->readline();
-        std::cout << "IFB Received data: " << ser_in_ << std::endl;
+        ser_->flushInput();        
+        RCLCPP_INFO(this->get_logger(), "%s, IFB Received data: ", ser_in_.c_str());
         return true;
       }
       
@@ -262,8 +278,7 @@ private:
 };
 
 int main(int argc, char** argv)
-{
-  
+{  
   printf("ifb_driver_package package Begining\n");
   
   rclcpp::init(argc, argv);
