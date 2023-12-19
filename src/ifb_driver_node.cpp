@@ -35,7 +35,7 @@
 constexpr char PORT_IFB[] =
   "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
 
-int BAUD_RATE;
+int BAUD_RATE = 115200;
 double IFBSTAT_TIMEOUT_NSEC;  // nsecs
 double IFB_TIMEOUT_SEC;
 double SERIAL_TIMEOUT;
