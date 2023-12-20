@@ -1,5 +1,5 @@
 <launch>  
-  <node pkg="ifb_driver_package" exec="ifb_driver_node" name="ifb_driver" output="screen">
+  <node pkg="ifb_driver_package" exec="ifb_driver_node" name="ifb_driver" output="log">
     <param name="BAUD_RATE"             value="115200" />
     <param name="IFBSTAT_TIMEOUT_NSEC"  value="1e9" />
     <param name="IFB_TIMEOUT_SEC"       value="0.5" />

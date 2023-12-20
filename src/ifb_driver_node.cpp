@@ -22,7 +22,7 @@
 #include <autoware_auto_vehicle_msgs/msg/velocity_report.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/string.hpp>
-
+#include <autoware_auto_vehicle_msgs/msg/control_mode_report.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <chrono>
@@ -49,6 +49,7 @@ int STEER_CMD_MIN;
 int STEER_CMD_MAX;
 double STEER_CMD_FACTOR;
 int TIMER_MILLI;
+int AUTOWARE_CTRL_TIMER_MILLI = 100;
 
 class IfbDriver : public rclcpp::Node
 {
@@ -77,6 +78,8 @@ private:
   {
     // Initialize publishers and subscribers
     pub_msg_from_ifb_ = this->create_publisher<std_msgs::msg::String>("/msg_from_ifb", 1);
+    pub_autoware_control_mode = this->create_publisher<autoware_auto_vehicle_msgs::msg::ControlModeReport>("/vehicle/status/control_mode", rclcpp::QoS(1).reliable().keep_last(1));
+    controlModeReportMsg.mode = autoware_auto_vehicle_msgs::msg::ControlModeReport::AUTONOMOUS;
 
     // pub_act_vel_ = this->create_publisher<geometry_msgs::msg::Twist>("/act_vel", 1);
     // pub_act_vel_ =
@@ -106,6 +109,9 @@ private:
     read_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(TIMER_MILLI), std::bind(&IfbDriver::read_from_IFB, this));
     this->act_vel_.header.frame_id = "base_link";
+
+    autoware_control_timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(AUTOWARE_CTRL_TIMER_MILLI), std::bind(&IfbDriver::set_autoware_control, this));
     // Connect to the IFB board
     connect();
   }
@@ -159,6 +165,11 @@ private:
     }
   }
 
+  void set_autoware_control()
+  {
+    this->controlModeReportMsg.stamp = rclcpp::Clock{RCL_SYSTEM_TIME}.now();
+    pub_autoware_control_mode->publish(controlModeReportMsg);
+  }
   bool check_ifb_board_timeout()
   {
     // True if timed out
@@ -194,10 +205,13 @@ private:
 
         act_vel_.longitudinal_velocity = speed / ACC_CMD_FACTOR;
         act_steer_.steering_tire_angle = steer / STEER_CMD_FACTOR;
+        act_vel_.header.stamp = rclcpp::Clock{RCL_SYSTEM_TIME}.now();
+        act_steer_.stamp = rclcpp::Clock{RCL_SYSTEM_TIME}.now();
+
+
       } catch (const std::exception & e) {
         return;
       }
-
       pub_act_vel_->publish(act_vel_);
       pub_act_steer_->publish(act_steer_);
       update_ifb_last();
@@ -245,14 +259,20 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_msg_from_ultrasonic_;
   autoware_auto_vehicle_msgs::msg::VelocityReport act_vel_;
   rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>::SharedPtr pub_act_vel_;
-
+  rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::ControlModeReport>::SharedPtr pub_autoware_control_mode;
+  
+  autoware_auto_vehicle_msgs::msg::ControlModeReport controlModeReportMsg;
+  
   autoware_auto_vehicle_msgs::msg::SteeringReport act_steer_;
   rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>::SharedPtr pub_act_steer_;
+
 
   // rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_vel_;
   rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr
     sub_cmd_vel_;
   rclcpp::TimerBase::SharedPtr read_timer_;
+  rclcpp::TimerBase::SharedPtr autoware_control_timer_;
+
   int64_t time_since_ifb_last_;
 };
 
