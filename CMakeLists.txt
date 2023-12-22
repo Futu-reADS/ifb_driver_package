@@ -69,11 +69,6 @@ install(DIRECTORY
 
 ament_target_dependencies(ifb_driver_node rclcpp std_msgs geometry_msgs Boost autoware_auto_vehicle_msgs autoware_auto_control_msgs)  
 
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
-)
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

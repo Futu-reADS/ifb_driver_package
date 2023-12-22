@@ -30,10 +30,9 @@
 #include <iostream>
 
 // Define constants
-// constexpr char PORT_IFB[] =
-// "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
-constexpr char PORT_IFB[] =
-  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
+// constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
+// constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066AFF515049657187144732-if02";
+constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
 
 int BAUD_RATE = 115200;
 double IFBSTAT_TIMEOUT_NSEC;  // nsecs
@@ -49,7 +48,7 @@ int STEER_CMD_MIN;
 int STEER_CMD_MAX;
 double STEER_CMD_FACTOR;
 int TIMER_MILLI;
-int AUTOWARE_CTRL_TIMER_MILLI = 100;
+constexpr int AUTOWARE_CTRL_TIMER_MILLI = 100;
 
 class IfbDriver : public rclcpp::Node
 {
@@ -238,7 +237,7 @@ private:
       if (ser_->available()) {
         ser_in_ = ser_->readline();
         ser_->flushInput();
-        RCLCPP_INFO(this->get_logger(), "IFB Received data: %s", ser_in_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "IFB Received data: %s", ser_in_.c_str());
         return true;
       }
 
