@@ -8,7 +8,7 @@
     <param name="ANGLE_STEER_DEG_MAX"   value="30" />
     <param name="WHEEL_BASE"            value="1.0" />
     <param name="ACC_CMD_FACTOR"        value="1000.0" />
-    <param name="ACC_CMD_MIN"           value="0" />
+    <param name="ACC_CMD_MIN"           value="-2000" />
     <param name="ACC_CMD_MAX"           value="3000" />
     <param name="STEER_CMD_MIN"         value="-500" />
     <param name="STEER_CMD_MAX"         value="500" />

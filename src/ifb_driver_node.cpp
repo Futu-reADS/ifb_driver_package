@@ -33,7 +33,10 @@
 // constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0667FF564977514867023048-if02";
 // constexpr char PORT_IFB[] = "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066AFF515049657187144732-if02";
 // constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0673FF30304B4E3043010827-if02";
-constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066EFF30304B4E3043012534-if02";
+// constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066EFF30304B4E3043012534-if02";
+// constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066CFF484971754867113142-if02";
+// constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0669FF555557838667143421-if02"; // 21-09
+constexpr char PORT_IFB[] =  "/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066EFF3732504E3043103247-if02"; // 2023-07 #2
 
 int BAUD_RATE = 115200;
 double IFBSTAT_TIMEOUT_NSEC;  // nsecs
@@ -124,7 +127,7 @@ private:
       RCLCPP_INFO(
         this->get_logger(), "Connected to %s at %d baudrate.", port_ifb_.c_str(), baudrate_);
     } catch (const serial::IOException & e) {
-      RCLCPP_WARN(this->get_logger(), "Unable to establish connection. Retrying...");
+      RCLCPP_ERROR(this->get_logger(), "Unable to establish connection. Retrying...");
       rclcpp::sleep_for(std::chrono::seconds(1));
       connect();  // Retry connection
     }
@@ -243,7 +246,7 @@ private:
       }
 
     } catch (const serial::IOException & e) {
-      RCLCPP_WARN(this->get_logger(), "Lost connection. Reconnecting...");
+      RCLCPP_ERROR(this->get_logger(), "Lost connection. Reconnecting...");
       connect();
     }
 
